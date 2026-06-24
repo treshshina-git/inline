@@ -28,7 +28,7 @@ async def wikipedia_search(query: str):
 
     async with aiohttp.ClientSession() as session:
         async with session.get(
-            "https://ru.wikipedia.org/api/rest_v1/",
+            "https://ru.wikipedia.org/w/api.php",
             params=params,
         ) as response:
             data = await response.json()
