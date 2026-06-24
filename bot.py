@@ -22,7 +22,7 @@ import os
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, InlineQueryHandler
-TOKEN=os.getenv("BOT_TOKEN")
+BOT_TOKEN=os.getenv("BOT_TOKEN")
 APP_URL=os.getenv("APP_URL")
 PORT=int(os.getenv("PORT"))
 WEBHOOK_SECRET="secret"
@@ -85,7 +85,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 def main() -> None:
     """Run the bot."""
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token("TOKEN").build()
+    application = Application.builder().token("BOT_TOKEN").build()
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
