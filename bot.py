@@ -15,7 +15,6 @@ from telegram.ext import (
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-
 async def wikipedia_search(query: str):
     params = {
         "action": "query",
@@ -25,6 +24,8 @@ async def wikipedia_search(query: str):
         "format": "json",
         "srlimit": 20,
     }
+    
+    print(params)
 
     async with aiohttp.ClientSession() as session:
         async with session.get(
@@ -33,6 +34,7 @@ async def wikipedia_search(query: str):
         ) as response:
             data = await response.json()
 
+    print(data)
     return data["query"]["search"]
 
 
