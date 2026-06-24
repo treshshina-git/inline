@@ -91,12 +91,18 @@ async def inline_query(update: Update,
     )
 
 
+
+async def error_handler(update, context):
+    print("ERROR:", context.error)
+
+
+
 def main():
     app = Application.builder().token(TOKEN).build()
-    await app.bot.delete_webhook(drop_pending_updates=True)
     app.add_handler(
         InlineQueryHandler(inline_query)
     )
+    app.add_error_handler(error_handler)
 
     print("Bot started")
 
