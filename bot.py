@@ -93,14 +93,13 @@ async def inline_query(update: Update,
 
 def main():
     app = Application.builder().token(TOKEN).build()
-
+    await app.bot.delete_webhook(drop_pending_updates=True)
     app.add_handler(
         InlineQueryHandler(inline_query)
     )
 
     print("Bot started")
-    app = Application.builder().token(TOKEN).build()
-    await app.bot.delete_webhook(drop_pending_updates=True)
+
     app.run_polling()
 
 
