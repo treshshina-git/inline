@@ -3,7 +3,7 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import Application, InlineQueryHandler, ContextTypes
 
 BOT_TOKEN=os.getenv("BOT_TOKEN")
-WEBHOOK_URL=os.getenv("APP_URL")
+APP_URL=os.getenv("APP_URL")
 PORT=int(os.getenv("PORT"))
 WEBHOOK_SECRET="secret"
 
