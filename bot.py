@@ -2,7 +2,7 @@ import os
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import Application, InlineQueryHandler, ContextTypes
 
-TOKEN=os.getenv("BOT_TOKEN")
+BOT_TOKEN=os.getenv("BOT_TOKEN")
 APP_URL=os.getenv("APP_URL")
 PORT=int(os.getenv("PORT"))
 
@@ -22,13 +22,13 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.inline_query.answer(results, cache_time=1)
 
-app=Application.builder().token(TOKEN).build()
+app=Application.builder().token(BOT_TOKEN).build()
 app.add_handler(InlineQueryHandler(inline_query))
 
 if __name__=="__main__":
     app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
-        webhook_url=f"{APP_URL}/{TOKEN}",
-        secret_token=TOKEN
+        webhook_url=f"{APP_URL}/{BOT_TOKEN}",
+        secret_token=BOT_TOKEN
     )
