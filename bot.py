@@ -18,7 +18,7 @@ bot.
 import logging
 from html import escape
 from uuid import uuid4
-
+import os
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, InlineQueryHandler
