@@ -1,49 +1,11 @@
 import os
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import Application, InlineQueryHandler, ContextTypes
-from fastapi import FastAPI, Request
 
 BOT_TOKEN=os.getenv("BOT_TOKEN")
 WEBHOOK_URL=os.getenv("APP_URL")
 PORT=int(os.getenv("PORT"))
 WEBHOOK_SECRET="secret"
-
-app = FastAPI()
-
-tg_app = setup_app()
-
-
-@app.on_event("startup")
-async def startup():
-
-    validate_config()
-
-    await tg_app.initialize()
-
-    await tg_app.bot.set_webhook(
-        url=WEBHOOK_URL,
-        secret_token=WEBHOOK_SECRET
-    )
-
-
-@app.post("/webhook")
-async def webhook(request: Request):
-
-    data = await request.json()
-
-    update = Update.de_json(data, tg_app.bot)
-
-    await tg_app.process_update(update)
-
-    return {"ok": True}
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-
 
 
 
