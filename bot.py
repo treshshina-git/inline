@@ -1,72 +1,104 @@
-from html import escape
+import html
 from uuid import uuid4
 import os
-from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
-from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes, InlineQueryHandler
-BOT_TOKEN=os.getenv("BOT_TOKEN")
+import aiohttp
+from telegram import (
+    Update,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+)
+from telegram.ext import (
+    Application,
+    InlineQueryHandler,
+    ContextTypes,
+)
+
+TOKEN = os.getenv("BOT_TOKEN")
 
 
+async def wikipedia_search(query: str):
+    params = {
+        "action": "query",
+        "list": "search",
+        "srsearch": query,
+        "utf8": "1",
+        "format": "json",
+        "srlimit": 20,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            "https://ru.wikipedia.org/api/rest_v1/",
+            params=params,
+        ) as response:
+            data = await response.json()
+
+    return data["query"]["search"]
 
 
-# Define a few command handlers. These usually take the two arguments update and
-# context.
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /start is issued."""
-    await update.message.reply_text("Hi!")
+async def inline_query(update: Update,
+                       context: ContextTypes.DEFAULT_TYPE):
 
+    query = update.inline_query.query.strip()
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a message when the command /help is issued."""
-    await update.message.reply_text("Help!")
-
-
-async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the inline query. This is run when you type: @botusername <query>"""
-    query = update.inline_query.query
-
-    if not query:  # empty query should not be handled
+    if not query:
+        await update.inline_query.answer([])
         return
 
-    results = [
-        InlineQueryResultArticle(
-            id=str(uuid4()),
-            title="Caps",
-            input_message_content=InputTextMessageContent(query.upper()),
-        ),
-        InlineQueryResultArticle(
-            id=str(uuid4()),
-            title="Bold",
-            input_message_content=InputTextMessageContent(
-                f"<b>{escape(query)}</b>", parse_mode=ParseMode.HTML
-            ),
-        ),
-        InlineQueryResultArticle(
-            id=str(uuid4()),
-            title="Italic",
-            input_message_content=InputTextMessageContent(
-                f"<i>{escape(query)}</i>", parse_mode=ParseMode.HTML
-            ),
-        ),
-    ]
+    pages = await wikipedia_search(query)
 
-    await update.inline_query.answer(results)
+    results = []
+
+    for page in pages:
+        title = page["title"]
+        pageid = page["pageid"]
+
+        snippet = html.unescape(page["snippet"])
+        snippet = snippet.replace("<span class=\"searchmatch\">", "")
+        snippet = snippet.replace("</span>", "")
+
+        url = (
+            "https://ru.wikipedia.org/wiki/"
+            + title.replace(" ", "_")
+        )
+
+        results.append(
+            InlineQueryResultArticle(
+                id=str(pageid),
+                title=title,
+                description=snippet[:100],
+
+                input_message_content=InputTextMessageContent(
+                    message_text=(
+                        f"<b>{title}</b>\n\n"
+                        f"{snippet}\n\n"
+                        f"<a href='{url}'>Open article</a>"
+                    ),
+                    parse_mode="HTML"
+                ),
+
+                url=url,
+                hide_url=False,
+            )
+        )
+
+    await update.inline_query.answer(
+        results=results,
+        cache_time=300,
+        is_personal=True
+    )
 
 
-def main() -> None:
-    """Run the bot."""
-    # Create the Application and pass it your bot's token.
-    application = Application.builder().token("BOT_TOKEN").build()
+def main():
+    app = Application.builder().token(TOKEN).build()
 
-    # on different commands - answer in Telegram
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
+    app.add_handler(
+        InlineQueryHandler(inline_query)
+    )
 
-    # on inline queries - show corresponding inline results
-    application.add_handler(InlineQueryHandler(inline_query))
+    print("Bot started")
 
-    # Run the bot until the user presses Ctrl-C
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling()
 
 
 if __name__ == "__main__":
