@@ -1,39 +1,102 @@
-import os
-from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
-from telegram.ext import Application, InlineQueryHandler, ContextTypes
+#!/usr/bin/env python
+# pylint: disable=unused-argument
+# This program is dedicated to the public domain under the CC0 license.
 
-BOT_TOKEN=os.getenv("BOT_TOKEN")
+"""
+Don't forget to enable inline mode with @BotFather
+
+First, a few handler functions are defined. Then, those functions are passed to
+the Application and registered at their respective places.
+Then, the bot is started and runs until we press Ctrl-C on the command line.
+
+Usage:
+Basic inline bot example. Applies different text transformations.
+Press Ctrl-C on the command line or send a signal to the process to stop the
+bot.
+"""
+
+import logging
+from html import escape
+from uuid import uuid4
+
+from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
+from telegram.constants import ParseMode
+from telegram.ext import Application, CommandHandler, ContextTypes, InlineQueryHandler
+TOKEN=os.getenv("BOT_TOKEN")
 APP_URL=os.getenv("APP_URL")
 PORT=int(os.getenv("PORT"))
 WEBHOOK_SECRET="secret"
 
 
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+# set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query=update.inline_query.query.strip()
-    if not query:
+logger = logging.getLogger(__name__)
+
+
+# Define a few command handlers. These usually take the two arguments update and
+# context.
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /start is issued."""
+    await update.message.reply_text("Hi!")
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    await update.message.reply_text("Help!")
+
+
+async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the inline query. This is run when you type: @botusername <query>"""
+    query = update.inline_query.query
+
+    if not query:  # empty query should not be handled
         return
 
-    text=f"Вы искали: {query}"
+    results = [
+        InlineQueryResultArticle(
+            id=str(uuid4()),
+            title="Caps",
+            input_message_content=InputTextMessageContent(query.upper()),
+        ),
+        InlineQueryResultArticle(
+            id=str(uuid4()),
+            title="Bold",
+            input_message_content=InputTextMessageContent(
+                f"<b>{escape(query)}</b>", parse_mode=ParseMode.HTML
+            ),
+        ),
+        InlineQueryResultArticle(
+            id=str(uuid4()),
+            title="Italic",
+            input_message_content=InputTextMessageContent(
+                f"<i>{escape(query)}</i>", parse_mode=ParseMode.HTML
+            ),
+        ),
+    ]
 
-    results=[InlineQueryResultArticle(
-        id="1",
-        title=f"Результат: {query}",
-        description=text,
-        input_message_content=InputTextMessageContent(text)
-    )]
+    await update.inline_query.answer(results)
 
-    await update.inline_query.answer(results, cache_time=1)
 
-app=Application.builder().token(BOT_TOKEN).build()
-app.add_handler(InlineQueryHandler(inline_query))
+def main() -> None:
+    """Run the bot."""
+    # Create the Application and pass it your bot's token.
+    application = Application.builder().token("TOKEN").build()
 
-if __name__=="__main__":
-    botik = BOT_TOKEN
-    print(botik)
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=f"{APP_URL}",
-        secret_token=BOT_TOKEN
-    )
+    # on different commands - answer in Telegram
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+
+    # on inline queries - show corresponding inline results
+    application.add_handler(InlineQueryHandler(inline_query))
+
+    # Run the bot until the user presses Ctrl-C
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
