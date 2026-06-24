@@ -4,7 +4,7 @@ from telegram.ext import Application, InlineQueryHandler, ContextTypes
 
 TOKEN=os.getenv("BOT_TOKEN")
 APP_URL=os.getenv("APP_URL")
-PORT=int(os.getenv("PORT",8000))
+PORT=int(os.getenv("PORT"))
 
 async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query=update.inline_query.query.strip()
