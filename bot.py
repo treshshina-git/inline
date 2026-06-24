@@ -1,4 +1,5 @@
 import html
+import asyncio
 from uuid import uuid4
 import os
 import aiohttp
@@ -46,11 +47,11 @@ async def inline_query(update: Update,
     if not query:
         await update.inline_query.answer([])
         return
-
+    print("1211212")
     pages = await wikipedia_search(query)
 
     results = []
-
+    print(results)
     for page in pages:
         title = page["title"]
         pageid = page["pageid"]
@@ -102,7 +103,6 @@ def main():
     app.add_handler(
         InlineQueryHandler(inline_query)
     )
-    app.add_error_handler(error_handler)
 
     print("Bot started")
 
