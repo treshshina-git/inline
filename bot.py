@@ -47,9 +47,9 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message.via_bot or message.via_bot.username != context.bot.username:
         return
-
+    texter = json.dumps(message.text)
     text = message.text.strip()
-    #logger.info(f"Caught: {text}")
+    logger.info(f"texter: {texter}")
 
     try:
         search = genius.search_songs(text, per_page=1)
