@@ -35,43 +35,49 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineQueryResultArticle(
                     id=str(song_id),
                     title=full_title,
-                    description="Получить текст песни",
+                    description="Получить текст",
                     input_message_content=InputTextMessageContent(full_title),
                 )
             )
 
         await update.inline_query.answer(results, cache_time=60, is_personal=True)
-        logger.info(f"Answered inline for query: {query}")
+        logger.info(f"Answered for: {query}")
 
     except Exception as e:
         logger.error(f"Inline error: {e}")
 
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Ловим результат inline выбора"""
     message = update.message
     if not message.via_bot or message.via_bot.username != context.bot.username:
         return
 
     text = message.text.strip()
-    logger.info(f"Caught inline selection: {text}")
+    logger.info(f"Caught selection: {text}")
 
     try:
+        # Ищем заново по названию
         search = genius.search_songs(text, per_page=1)
         if search.get("hits"):
-            song = search["hits"][0]["result"]
-            song_obj = genius.song(song["id"])
-            full_title = f"{song_obj.title} — {song_obj.primary_artist.name}"
-            lyrics = song_obj.lyrics or "Текст не найден."
+            song_data = search["hits"][0]["result"]
+            song_id = song_data["id"]
+            
+            song_obj = genius.song(song_id)
+            
+            # Безопасное получение данных
+            title = song_obj.title if hasattr(song_obj, 'title') else song_data.get("title", "Unknown")
+            artist = song_obj.primary_artist.name if hasattr(song_obj.primary_artist, 'name') else song_data.get("primary_artist", {}).get("name", "Unknown")
+            full_title = f"{title} — {artist}"
+            lyrics = song_obj.lyrics if hasattr(song_obj, 'lyrics') else "Текст не найден."
 
             await message.reply_text(
                 f"🎵 <b>{full_title}</b>\n\n{lyrics}",
                 parse_mode=ParseMode.HTML
             )
-            logger.info("Lyrics sent successfully")
+            logger.info("Lyrics sent!")
     except Exception as e:
         logger.error(f"Failed to get lyrics: {e}")
-        await message.reply_text("Не удалось загрузить текст песни.")
+        await message.reply_text("Не удалось загрузить текст. Попробуй другой запрос.")
 
 
 def main():
@@ -80,7 +86,7 @@ def main():
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))
 
-    logger.info("Bot started - ready for testing")
+    logger.info("Bot ready")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
