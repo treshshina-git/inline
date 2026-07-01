@@ -20,20 +20,22 @@ song_cache = defaultdict(dict)           # song_id -> {"title": , "lyrics": }
 user_history = defaultdict(lambda: deque(maxlen=10))
 
 async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Только название + исполнитель"""
+    """Чистый поиск: только при наличии запроса"""
     query_text = update.inline_query.query.strip()
     offset = update.inline_query.offset or "0"
-    user_id = update.inline_query.from_user.id
 
-    if query_text:
-        user_history[user_id].appendleft(query_text)
+    if not query_text:   # Пустой запрос — ничего не показываем
+        return
+
+    user_id = update.inline_query.from_user.id
+    user_history[user_id].appendleft(query_text)
 
     try:
         per_page = 8
         offset_int = int(offset)
         page = offset_int // per_page + 1
 
-        search = genius.search_songs(query_text or "popular", per_page=per_page + 1, page=page)
+        search = genius.search_songs(query_text, per_page=per_page + 1, page=page)
         results = []
         hits = search.get("hits", [])[:per_page]
 
@@ -51,7 +53,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 InlineQueryResultArticle(
                     id=str(song_id),
                     title=full_title,
-                    description="Нажми, чтобы получить текст",
+                    description="Нажми для получения текста песни",
                     input_message_content=InputTextMessageContent(full_title),
                 )
             )
@@ -65,15 +67,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             next_offset=next_offset
         )
 
-    except BadRequest as e:
-        if "too old" not in str(e).lower():
-            logger.error(f"BadRequest: {e}")
     except Exception as e:
         logger.error(f"Inline error: {e}")
 
 
 async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Полный текст только после выбора"""
     user_id = update.chosen_inline_result.from_user.id
     song_id = int(update.chosen_inline_result.result_id)
 
@@ -89,7 +87,7 @@ async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYP
 
         keyboard = [
             [InlineKeyboardButton("📤 Отправить в чат", callback_data=f"share_{song_id}")],
-            [InlineKeyboardButton("📜 История", callback_data="history")]
+            [InlineKeyboardButton("📜 История поиска", callback_data="history")]
         ]
         markup = InlineKeyboardMarkup(keyboard)
 
@@ -101,7 +99,7 @@ async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYP
         )
     except Exception as e:
         logger.error(f"Chosen error: {e}")
-        await context.bot.send_message(chat_id=user_id, text="❌ Ошибка загрузки текста.")
+        await context.bot.send_message(chat_id=user_id, text="❌ Не удалось загрузить текст.")
 
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -120,7 +118,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
     elif data == "history":
         hist = "\n".join([f"• {q}" for q in list(user_history[query.from_user.id])])
-        await query.edit_message_text(f"📜 История поиска:\n{hist}" if hist else "Пока пусто.")
+        await query.edit_message_text(f"📜 История:\n{hist}" if hist else "Пока пусто.")
 
 
 def main():
@@ -130,7 +128,7 @@ def main():
     app.add_handler(ChosenInlineResultHandler(chosen_inline_result))
     app.add_handler(CallbackQueryHandler(callback_handler))
 
-    logger.info("✅ Бот запущен (чистый превью + пагинация)")
+    logger.info("✅ Чистый бот запущен (без превью и топ-треков)")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
