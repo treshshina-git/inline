@@ -13,7 +13,6 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 
 genius = Genius(GENIUS_TOKEN, skip_non_songs=True, remove_section_headers=True)
-song_cache = {}
 
 async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.inline_query.query.strip()
@@ -22,14 +21,12 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         results = []
-        search = genius.search_songs(query, per_page=6)
+        search = genius.search_songs(query, per_page=5)
 
-        for hit in search.get("hits", [])[:6]:
+        for hit in search.get("hits", [])[:5]:
             song = hit["result"]
             song_id = song["id"]
             full_title = f"{song['title']} — {song['primary_artist']['name']}"
-
-            song_cache[song_id] = full_title
 
             results.append(
                 InlineQueryResultArticle(
@@ -41,8 +38,6 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         await update.inline_query.answer(results, cache_time=60, is_personal=True)
-        logger.info(f"Answered for: {query}")
-
     except Exception as e:
         logger.error(f"Inline error: {e}")
 
@@ -53,30 +48,31 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = message.text.strip()
-    logger.info(f"Caught selection: {text}")
+    logger.info(f"Caught: {text}")
 
     try:
-        # Ищем заново по названию
         search = genius.search_songs(text, per_page=1)
-        if search.get("hits"):
-            song_data = search["hits"][0]["result"]
-            song_id = song_data["id"]
-            
-            song_obj = genius.song(song_id)
-            
-            # Безопасное получение данных
-            title = song_obj.title if hasattr(song_obj, 'title') else song_data.get("title", "Unknown")
-            artist = song_obj.primary_artist.name if hasattr(song_obj.primary_artist, 'name') else song_data.get("primary_artist", {}).get("name", "Unknown")
-            full_title = f"{title} — {artist}"
-            lyrics = song_obj.lyrics if hasattr(song_obj, 'lyrics') else "Текст не найден."
+        if not search.get("hits"):
+            await message.reply_text("Песня не найдена.")
+            return
 
-            await message.reply_text(
-                f"🎵 <b>{full_title}</b>\n\n{lyrics}",
-                parse_mode=ParseMode.HTML
-            )
-            logger.info("Lyrics sent!")
+        song_data = search["hits"][0]["result"]
+        song_id = song_data["id"]
+
+        # Прямой запрос текста
+        song = genius.song(song_id)
+        lyrics = song.lyrics if hasattr(song, 'lyrics') and song.lyrics else "Текст не найден."
+
+        title = song.title if hasattr(song, 'title') else song_data.get("title", "Unknown")
+        artist = song.primary_artist.name if hasattr(song.primary_artist, 'name') else song_data.get("primary_artist", {}).get("name", "Unknown")
+
+        await message.reply_text(
+            f"🎵 <b>{title} — {artist}</b>\n\n{lyrics}",
+            parse_mode=ParseMode.HTML
+        )
+        logger.info("Lyrics sent successfully")
     except Exception as e:
-        logger.error(f"Failed to get lyrics: {e}")
+        logger.error(f"Get lyrics error: {e}")
         await message.reply_text("Не удалось загрузить текст. Попробуй другой запрос.")
 
 
@@ -86,7 +82,7 @@ def main():
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))
 
-    logger.info("Bot ready")
+    logger.info("Bot started")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
