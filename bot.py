@@ -1,4 +1,4 @@
-import logging
+import logging, json
 import os
 
 from lyricsgenius import Genius
