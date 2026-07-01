@@ -2,9 +2,9 @@ import logging
 import os
 
 from lyricsgenius import Genius
-from telegram import InlineQueryResultArticle, InputTextMessageContent, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.constants import ParseMode
-from telegram.ext import Application, InlineQueryHandler, ChosenInlineResultHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, InlineQueryHandler, ChosenInlineResultHandler, ContextTypes
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -13,7 +13,6 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 
 genius = Genius(GENIUS_TOKEN, skip_non_songs=True, remove_section_headers=True)
-
 song_cache = {}
 
 async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -23,14 +22,12 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         results = []
-        search = genius.search_songs(query, per_page=6)
+        search = genius.search_songs(query, per_page=5)
 
-        for hit in search.get("hits", [])[:6]:
+        for hit in search.get("hits", [])[:5]:
             song = hit["result"]
             song_id = song["id"]
-            title = song["title"]
-            artist = song["primary_artist"]["name"]
-            full_title = f"{title} — {artist}"
+            full_title = f"{song['title']} — {song['primary_artist']['name']}"
 
             song_cache[song_id] = {"title": full_title, "lyrics": None}
 
@@ -38,20 +35,20 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineQueryResultArticle(
                     id=str(song_id),
                     title=full_title,
-                    description="Нажми для текста",
+                    description="Получить текст песни",
                     input_message_content=InputTextMessageContent(full_title),
                 )
             )
 
-        await update.inline_query.answer(results, cache_time=300, is_personal=True)
-        logger.info(f"Inline query answered for: {query}")
+        await update.inline_query.answer(results, cache_time=60, is_personal=True)
+        logger.info(f"Answered inline for: {query}")
 
     except Exception as e:
         logger.error(f"Inline error: {e}")
 
 
 async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("ChosenInlineResult triggered!")   # Должно появиться в логах
+    logger.info("=== CHOSEN INLINE RESULT RECEIVED ===")
     user_id = update.chosen_inline_result.from_user.id
     song_id = int(update.chosen_inline_result.result_id)
 
@@ -71,11 +68,10 @@ async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYP
             text=f"🎵 <b>{full_title}</b>\n\n{lyrics}",
             parse_mode=ParseMode.HTML
         )
-        logger.info(f"Sent lyrics to user {user_id}")
+        logger.info(f"Successfully sent lyrics for song {song_id} to {user_id}")
 
     except Exception as e:
-        logger.error(f"Chosen error: {e}")
-        await context.bot.send_message(chat_id=user_id, text="Ошибка загрузки.")
+        logger.error(f"Failed to send lyrics: {e}")
 
 
 def main():
@@ -84,7 +80,7 @@ def main():
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(ChosenInlineResultHandler(chosen_inline_result))
 
-    logger.info("Bot started - waiting for inline queries...")
+    logger.info("Bot started. Test inline now.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
