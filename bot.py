@@ -47,7 +47,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     if not message.via_bot or message.via_bot.username != context.bot.username:
         return
-    texter = json.dumps(message.text)
+    texter = json(message)
     text = message.text.strip()
     logger.info(f"texter: {texter}")
 
