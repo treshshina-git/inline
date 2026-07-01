@@ -2,7 +2,8 @@ import logging
 import os
 
 from lyricsgenius import Genius
-from telegram import Update
+from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
+from telegram.constants import ParseMode
 from telegram.ext import Application, InlineQueryHandler, MessageHandler, filters, ContextTypes
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
@@ -28,32 +29,33 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
             song_id = song["id"]
             full_title = f"{song['title']} — {song['primary_artist']['name']}"
 
-            song_cache[song_id] = full_title  # сохраняем только название
+            song_cache[song_id] = full_title
 
             results.append(
                 InlineQueryResultArticle(
                     id=str(song_id),
                     title=full_title,
-                    description="Получить текст",
+                    description="Получить текст песни",
                     input_message_content=InputTextMessageContent(full_title),
                 )
             )
 
         await update.inline_query.answer(results, cache_time=60, is_personal=True)
+        logger.info(f"Answered inline for query: {query}")
+
     except Exception as e:
         logger.error(f"Inline error: {e}")
 
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Ловим сообщение, которое пришло после выбора inline"""
+    """Ловим результат inline выбора"""
     message = update.message
     if not message.via_bot or message.via_bot.username != context.bot.username:
         return
 
     text = message.text.strip()
-    logger.info(f"Caught inline message: {text}")
+    logger.info(f"Caught inline selection: {text}")
 
-    # Простой поиск по названию (можно улучшить)
     try:
         search = genius.search_songs(text, per_page=1)
         if search.get("hits"):
@@ -62,21 +64,25 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             full_title = f"{song_obj.title} — {song_obj.primary_artist.name}"
             lyrics = song_obj.lyrics or "Текст не найден."
 
-            await message.reply_text(f"🎵 <b>{full_title}</b>\n\n{lyrics}", parse_mode=ParseMode.HTML)
+            await message.reply_text(
+                f"🎵 <b>{full_title}</b>\n\n{lyrics}",
+                parse_mode=ParseMode.HTML
+            )
             logger.info("Lyrics sent successfully")
     except Exception as e:
-        logger.error(f"Message handler error: {e}")
-        await message.reply_text("Не удалось найти текст песни.")
+        logger.error(f"Failed to get lyrics: {e}")
+        await message.reply_text("Не удалось загрузить текст песни.")
 
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(InlineQueryHandler(inline_query))
-    app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))  # Главный фикс
+    app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))
 
-    logger.info("Bot started with VIA_BOT handler")
+    logger.info("Bot started - ready for testing")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
+
 
 if __name__ == "__main__":
     main()
