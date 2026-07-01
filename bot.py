@@ -22,10 +22,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         results = []
         search = genius.search_songs(query, per_page=5)
-        print(search)
+        #print(search)
         for hit in search.get("hits", [])[:5]:
             song = hit["result"]
-            #print(song)
+            ssong = f"Сонг -> {song}"
+            print(ssong)
             full_title = f"{song['title']} — {song['primary_artist']}"
 
             results.append(
@@ -48,7 +49,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = message.text.strip()
-    logger.info(f"Caught: {text}")
+    #logger.info(f"Caught: {text}")
 
     try:
         search = genius.search_songs(text, per_page=1)
@@ -61,7 +62,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Получаем полные данные
         song = genius.song(song_id)
-        print(f"song: \n{song}")
+        #print(f"song: \n{song}")
         # Безопасное извлечение
         title = song.title if hasattr(song, 'title') else song_data.get("title", "Unknown")
         
@@ -88,7 +89,7 @@ def main():
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))
 
-    logger.info("Bot started")
+    #logger.info("Bot started")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
