@@ -22,11 +22,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         results = []
         search = genius.search_songs(query, per_page=5)
-
+        print(search)
         for hit in search.get("hits", [])[:5]:
             song = hit["result"]
             print(song)
-            full_title = f"{song['title']} — {song['primary_artist']['name']}"
+            full_title = f"{song['title']} — {song['primary_artist_names']}"
 
             results.append(
                 InlineQueryResultArticle(
