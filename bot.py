@@ -79,7 +79,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         logger.info("Lyrics sent!")
     except Exception as e:
-        logger.error(f"Get lyrics error: {e}")
+        #logger.error(f"Get lyrics error: {e}")
         await message.reply_text("Не удалось загрузить текст. Попробуй другой запрос.")
 
 
@@ -89,7 +89,7 @@ def main():
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(MessageHandler(filters.VIA_BOT, message_handler))
 
-    #logger.info("Bot started")
+    #.info("Bot started")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
