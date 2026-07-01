@@ -25,8 +25,8 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(search)
         for hit in search.get("hits", [])[:5]:
             song = hit["result"]
-            print(song)
-            full_title = f"{song['title']} — {song['primary_artist']}"
+            #print(song)
+            full_title = f"{song['title']} — {song['primary_artist_names']}"
 
             results.append(
                 InlineQueryResultArticle(
