@@ -29,7 +29,6 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_id = update.inline_query.from_user.id
     user_history[user_id].appendleft(query_text)
-    print(f"User {user_id} chose song ID {song_id}")
     try:
         per_page = 8
         offset_int = int(offset)
@@ -74,7 +73,10 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def chosen_inline_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.chosen_inline_result.from_user.id
     song_id = int(update.chosen_inline_result.result_id)
-
+    if(song_id):
+        print(f"User {user_id} chose song ID {song_id}")
+    else:
+        print(f"User {user_id} chose an invalid song ID")
     try:
         if song_id not in song_cache or song_cache[song_id].get("lyrics") is None:
             song_obj = genius.song(song_id)
