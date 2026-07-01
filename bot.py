@@ -62,7 +62,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Получаем полные данные
         song = genius.song(song_id)
-        #print(f"song: \n{song}")
+        print(song)
         # Безопасное извлечение
         title = song.title if hasattr(song, 'title') else song_data.get("title", "Unknown")
         
