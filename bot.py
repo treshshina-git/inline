@@ -66,8 +66,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         title = song.title if hasattr(song, 'title') else song_data.get("title", "Unknown")
         
         # Artist может быть dict
-        if isinstance(song.primary_artist, dict):
-            artist = song.primary_artist.get("name", "Unknown")
+        if isinstance(song.primary_artist_names, dict):
+            artist = song.primary_artist_names.get("name", "Unknown")
         else:
             artist = getattr(song.primary_artist, 'name', song_data.get("primary_artist_names").get("name", "Unknown"))
         lyrics = song.lyrics if hasattr(song, 'lyrics') else "Текст не найден."
