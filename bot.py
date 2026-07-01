@@ -29,7 +29,7 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_id = update.inline_query.from_user.id
     user_history[user_id].appendleft(query_text)
-
+    print(f"User {user_id} chose song ID {song_id}")
     try:
         per_page = 8
         offset_int = int(offset)
